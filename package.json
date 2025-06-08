@@ -1,0 +1,90 @@
+{
+  "name": "coc-github-copilot",
+  "version": "0.0.1",
+  "description": "GitHub Copilot extension for coc.nvim",
+  "author": "Qiming Zhao <chemzqm@gmail.com>",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "keywords": [
+    "coc.nvim",
+    "github-copilot",
+    "copilot",
+    "neovim",
+    "vim"
+  ],
+  "engines": {
+    "coc": "^0.0.82"
+  },
+  "activationEvents": [
+    "*"
+  ],
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "GitHub Copilot",
+      "properties": {
+        "github-copilot.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GitHub Copilot"
+        },
+        "github-copilot.token": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub token for authentication"
+        },
+        "github-copilot.filetypes": {
+          "type": ["array", "null"],
+          "default": null,
+          "scope": "application",
+          "description": "Enabled filetypes, use \"*\" or null for all filetypes.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "github-copilot.trace.server.verbosity": {
+          "type": "string",
+          "default": "messages",
+          "enum": ["off", "messages", "compact", "verbose"],
+          "description": "Trace level of communication between server and client"
+        },
+        "github-copilot.trace.server.format": {
+          "type": "string",
+          "default": "text",
+          "enum": ["text", "json"],
+          "description": "Text format of trace messages."
+        },
+        "github-copilot.statusIcon": {
+          "type": "string",
+          "default": "Copilot",
+          "description": "Status text, change to  if nerd font works on your vim."
+        },
+        "github-enterprise.uri": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "If you are using GitHub Copilot Enterprise, set this to the URI of your GitHub Enterprise instance."
+        }
+      }
+    },
+    "commands": [{
+      "title": "Sign in to Github Copilot",
+      "command": "github-copilot.signIn"
+    }, {
+      "title": "Sign out to Github Copilot",
+      "command": "github-copilot.signOut"
+    }]
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "prepare": "node esbuild.js"
+  },
+  "dependencies": {
+    "@github/copilot-language-server": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.5.4",
+    "coc.nvim": "^0.0.83-next.23"
+  }
+}
