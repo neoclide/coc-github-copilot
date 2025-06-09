@@ -45,6 +45,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
 
   client.onNotification('didChangeStatus', event => {
     let msg: string = event.message ?? ''
+    statusItem.isProgress = event.busy === true
     switch (event.kind) {
       case 'Error':
         if (msg.length > 0) {
@@ -82,10 +83,10 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
 
   subscriptions.push(
     window.onDidChangeActiveTextEditor(e => {
-      if (client.isRunning()) {
+      if (e && client.isRunning()) {
         client.sendNotification('textDocument/didFocus', {
           textDocument: {
-            uri: e?.document.uri
+            uri: e.document.uri
           }
         })
       }
