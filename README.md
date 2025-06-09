@@ -23,6 +23,18 @@ In your vim/neovim, run command:
 :CocInstall coc-github-copilot
 ```
 
+## Configurations
+
+- `github-copilot.enableCompletion`: Enable GitHub Copilot for inline completion  Default: `true`
+- `github-copilot.token`: GitHub token for authentication  Default: `""`
+- `github-copilot.filetypes`: Enabled filetypes, use "*" or null for all filetypes.  Default: `["*"]`
+- `github-copilot.trace.server.verbosity`: Trace level of communication between server and client  Default: `"messages"`
+    Valid options: ["off","messages","compact","verbose"]
+- `github-copilot.trace.server.format`: Text format of trace messages.  Default: `"text"`
+    Valid options: ["text","json"]
+- `github-copilot.statusIcon`: Status text, change to  if nerd font works on your vim.  Default: `"Copilot"`
+- `github-enterprise.uri`: If you are using GitHub Copilot Enterprise, set this to the URI of your GitHub Enterprise instance.  Default: `null`
+
 ## Commands
 
 - `github-copilot.signIn` Sign in to Github Copilot.
