@@ -28,7 +28,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
     middleware: {
       sendRequest: (type, param: any, token, next) => {
         if (typeof type === 'object' && type.method == 'textDocument/inlineCompletion') {
-          let doc = window.activeTextEditor?.document
+          let textDocument = param.textDocument
+          let doc = workspace.getDocument(textDocument.uri)
           if (!doc || doc.getVar('copilot_disable')) {
             return Promise.resolve(undefined as any)
           }
