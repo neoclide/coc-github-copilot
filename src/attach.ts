@@ -78,7 +78,9 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
   }, null, subscriptions)
 
   events.on('InlineAccept' as any, (acceptedLength, item) => {
-    client.sendNotification('textDocument/didPartiallyAcceptCompletion', { item, acceptedLength })
+    if (acceptedLength) {
+      client.sendNotification('textDocument/didPartiallyAcceptCompletion', { item, acceptedLength })
+    }
   }, null, subscriptions)
 
   subscriptions.push(
