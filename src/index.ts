@@ -63,9 +63,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     transport: TransportKind.ipc,
     options: {
       cwd: workspace.root,
-      env: {
-        GITHUB_TOKEN: config.get<string>('token', process.env.GITHUB_TOKEN ?? ''),
-      },
+      env: process.env
     },
   }
 

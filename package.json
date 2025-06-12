@@ -29,12 +29,6 @@
           "scope": "language-overridable",
           "description": "Enable GitHub Copilot for inline completion"
         },
-        "github-copilot.token": {
-          "type": "string",
-          "default": "",
-          "scope": "application",
-          "description": "GitHub token for authentication"
-        },
         "github-copilot.openPanelCommand": {
           "type": "string",
           "default": "keepalt vs",

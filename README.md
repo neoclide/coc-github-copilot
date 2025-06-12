@@ -32,7 +32,6 @@ In your vim/neovim, run command:
 ## Configurations
 
 - `github-copilot.enableCompletion`: Enable GitHub Copilot for inline completion  Default: `true`
-- `github-copilot.token`: GitHub token for authentication  Default: `""`
 - `github-copilot.openPanelCommand`: Vim command to open github copilot panel for inline completion items. Default: `"keepalt vs"`
 - `github-copilot.filetypes`: Enabled filetypes, use "*" or null for all filetypes.  Default: `["*"]`
 - `github-copilot.trace.server.verbosity`: Trace level of communication between server and client  Default: `"messages"`
