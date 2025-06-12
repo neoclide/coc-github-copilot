@@ -1,4 +1,5 @@
-import { commands, Disposable, events, LanguageClient, State, window, workspace, WorkspaceConfiguration } from 'coc.nvim';
+import { CancellationTokenSource, commands, Disposable, events, InlineCompletionItem, LanguageClient, State, Uri, window, workspace, WorkspaceConfiguration } from 'coc.nvim';
+import Panel, { PanelConfig } from './panel';
 
 interface SigInResult {
   userCode: string
@@ -8,9 +9,103 @@ interface SigInResult {
     title: string
   }
 }
+const commentNamespace = 'copolitComment'
+const seperatorNamespace = 'copolitSpeerator'
+
+function uuid(): string {
+  // Generate a UUID v4
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 export function register(subscriptions: Disposable[], client: LanguageClient, config: WorkspaceConfiguration): void {
-  let { nvim } = workspace
+  const { nvim } = workspace
+  const panels: Map<string, Panel> = new Map();
+  subscriptions.push(Disposable.create(() => {
+    for (let panel of panels.values()) {
+      panel.dispose();
+    }
+    panels.clear()
+  }))
+
+  events.on('BufUnload', async (bufnr: number) => {
+    for (const [uri, panel] of panels.entries()) {
+      if (panel.bufnr === bufnr) {
+        panel.dispose()
+        panels.delete(uri);
+        break
+      }
+    }
+  }, null, subscriptions)
+
+  let commentNs: number
+  let seperatorNs: number
+  async function openPanel(client: LanguageClient, config: WorkspaceConfiguration): Promise<void> {
+    const doc = await workspace.document
+    if (!doc || !doc.attached) {
+      void window.showErrorMessage('Current document is not attached');
+      return
+    }
+    const targetWinid = await nvim.call('win_getid') as number
+    if (!commentNs) commentNs = await nvim.createNamespace(commentNamespace)
+    if (!seperatorNs) seperatorNs = await nvim.createNamespace(seperatorNamespace)
+    const position = await window.getCursorPosition()
+    const formattingOptions = await workspace.getFormatOptions(doc.uri)
+    const partialResultToken = uuid()
+    const params = {
+      textDocument: {
+        uri: doc.uri,
+        version: doc.version
+      },
+      position,
+      formattingOptions,
+      partialResultToken
+    }
+    const cmd = config.get<string>('panelCommand', 'keepalt vs')
+    const uri = `github-copolit:///panel/${partialResultToken}`
+    nvim.pauseNotification()
+    nvim.command(`${cmd} ${uri}`, true)
+    nvim.call('bufnr', ['%'], true)
+    nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true)
+    nvim.command('setlocal buftype=nofile bufhidden=wipe', true)
+    nvim.command(`setfiletype ${doc.filetype}`, true)
+    let res = await nvim.resumeNotification()
+    let panelUri = Uri.parse(uri)
+    const tokenSource = new CancellationTokenSource()
+    const conf: PanelConfig = {
+      formatOptions: formattingOptions,
+      commentNs,
+      seperatorNs,
+      targetUri: doc.uri,
+      targetWinid,
+      position
+    }
+    const panel = new Panel(res[0][1] as number, partialResultToken, client, tokenSource, conf)
+    panels.set(panelUri.toString(), panel);
+    const token = tokenSource.token
+    await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(res => {
+      if (!token.isCancellationRequested) {
+        if (res && Array.isArray(res.items)) {
+          for (const item of res.items) {
+            panel.addItem(item)
+          }
+        }
+      }
+      panel.detachListener()
+    })
+  }
+
+  subscriptions.push(workspace.registerTextDocumentContentProvider('github-copolit', {
+    provideTextDocumentContent: async (uri: Uri): Promise<string> => {
+      let panel = panels.get(uri.toString());
+      if (!panel) return ''
+      return panel.content
+    }
+  }))
+
   subscriptions.push(commands.registerCommand('github-copilot.signIn', async () => {
     client.sendRequest<SigInResult>('signIn', {}).then(async result => {
       try {
@@ -28,6 +123,10 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
 
   subscriptions.push(commands.registerCommand('github-copilot.signOut', async () => {
     await client.sendRequest('signOut', {})
+  }))
+
+  subscriptions.push(commands.registerCommand('github-copilot.openPanel', async () => {
+    await openPanel(client, config)
   }))
 
   const statusIcon = config.get('statusIcon', '')

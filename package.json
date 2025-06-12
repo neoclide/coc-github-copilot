@@ -35,6 +35,12 @@
           "scope": "application",
           "description": "GitHub token for authentication"
         },
+        "github-copilot.openPanelCommand": {
+          "type": "string",
+          "default": "keepalt vs",
+          "scope": "application",
+          "description": "Vim command to open github copilot completions panel for inline completion items."
+        },
         "github-copilot.filetypes": {
           "type": [
             "array"
@@ -100,6 +106,10 @@
       {
         "title": "Sign out to Github Copilot",
         "command": "github-copilot.signOut"
+      },
+      {
+        "title": "Open copilot completions panel",
+        "command": "github-copilot.openPanel"
       }
     ]
   },
