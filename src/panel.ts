@@ -27,6 +27,12 @@ export async function getInsertText(item: InlineCompletionItem, formatOptions: F
   return formatInsertText(item.insertText, formatOptions)
 }
 
+const keys = {
+  accept: '<cr>',
+  next: ']]',
+  prev: '[[',
+}
+
 export interface PanelConfig {
   readonly formatOptions: FormattingOptions
   readonly commentNs: number
@@ -53,6 +59,7 @@ export default class Panel {
   private items: PanelItem[] = []
   constructor(
     private _bufnr: number,
+    public readonly winid: number,
     private token: string,
     private client: LanguageClient,
     private tokenSource: CancellationTokenSource | undefined,
@@ -74,7 +81,7 @@ export default class Panel {
   }
 
   private addKeymappings(): void {
-    workspace.registerLocalKeymap(this._bufnr, 'n', '<tab>', async () => {
+    workspace.registerLocalKeymap(this._bufnr, 'n', keys.accept, async () => {
       let lnum = await workspace.nvim.call('line', '.') as number
       let curr = this.getCurrentItem(lnum - 1)
       if (curr) {
@@ -98,10 +105,10 @@ export default class Panel {
         }
       }
     })
-    workspace.registerLocalKeymap(this._bufnr, 'n', ']', async () => {
+    workspace.registerLocalKeymap(this._bufnr, 'n', keys.next, async () => {
       await this.navigate(true)
     })
-    workspace.registerLocalKeymap(this._bufnr, 'n', '[', async () => {
+    workspace.registerLocalKeymap(this._bufnr, 'n', keys.prev, async () => {
       await this.navigate(false)
     })
   }
@@ -128,7 +135,7 @@ export default class Panel {
   public setCommetntVtext(progress = false): void {
     if (this._disposed) return
     let text = progress ? frames[Math.floor((new Date).getMilliseconds() / 100)] + ' Loading suggestions ' : ''
-    if (this.items.length > 0) text += `Press <tab> to accepted the suggestion, press "[" or "]" to navigate`
+    if (this.items.length > 0) text += `Press ${keys.accept} to accepted the suggestion, press "${keys.next}" or "${keys.prev}" to navigate`
     this.buffer.clearNamespace(this.config.commentNs)
     this.buffer.setVirtualText(this.config.commentNs, 0, [[text, 'Comment']], {
       indent: false,

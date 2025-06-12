@@ -34,9 +34,9 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     nvim.command(`silent! bwipeout ${bufnrs.join(' ')}`, true)
   }))
 
-  events.on('BufUnload', async (bufnr: number) => {
+  events.on('WinClosed', async (winid: number) => {
     for (const [uri, panel] of panels.entries()) {
-      if (panel.bufnr === bufnr) {
+      if (panel.winid === winid) {
         panel.dispose()
         panels.delete(uri);
         break
@@ -72,6 +72,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     nvim.pauseNotification()
     nvim.command(`${cmd} ${uri}`, true)
     nvim.call('bufnr', ['%'], true)
+    nvim.call('win_getid', [], true)
     nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true)
     nvim.command('setlocal buftype=nofile bufhidden=wipe', true)
     nvim.command(`setfiletype ${doc.filetype}`, true)
@@ -86,7 +87,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       targetWinid,
       position
     }
-    const panel = new Panel(res[0][1] as number, partialResultToken, client, tokenSource, conf)
+    const panel = new Panel(res[0][1] as number, res[0][2] as number, partialResultToken, client, tokenSource, conf)
     panels.set(panelUri.toString(), panel);
     const token = tokenSource.token
     await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(res => {
@@ -105,6 +106,12 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     provideTextDocumentContent: async (uri: Uri): Promise<string> => {
       let panel = panels.get(uri.toString());
       if (!panel) return ''
+      let buf = nvim.createBuffer(panel.bufnr)
+      await buf.setOption('modifiable', true)
+      nvim.command(`syntax on`, true)
+      setTimeout(() => {
+        panel.addSeperators()
+      }, 10)
       return panel.content
     }
   }))
