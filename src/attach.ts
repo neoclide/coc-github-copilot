@@ -25,10 +25,13 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
   const { nvim } = workspace
   const panels: Map<string, Panel> = new Map();
   subscriptions.push(Disposable.create(() => {
+    let bufnrs: number[] = []
     for (let panel of panels.values()) {
-      panel.dispose();
+      bufnrs.push(panel.bufnr)
+      panel.dispose()
     }
     panels.clear()
+    nvim.command(`silent! bwipeout ${bufnrs.join(' ')}`, true)
   }))
 
   events.on('BufUnload', async (bufnr: number) => {
@@ -122,11 +125,19 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
   }))
 
   subscriptions.push(commands.registerCommand('github-copilot.signOut', async () => {
-    await client.sendRequest('signOut', {})
+    if (client.isRunning()) {
+      await client.sendRequest('signOut', {})
+    } else {
+      void window.showErrorMessage('GitHub Copilot client is not running.')
+    }
   }))
 
   subscriptions.push(commands.registerCommand('github-copilot.openPanel', async () => {
-    await openPanel(client, config)
+    if (client.isRunning()) {
+      await openPanel(client, config)
+    } else {
+      void window.showErrorMessage('GitHub Copilot client is not running.')
+    }
   }))
 
   const statusIcon = config.get('statusIcon', '')
@@ -173,11 +184,13 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
   })
 
   events.on('InlineShown' as any, item => {
-    client.sendNotification('textDocument/didShowCompletion', { item })
+    if (client.isRunning()) {
+      client.sendNotification('textDocument/didShowCompletion', { item })
+    }
   }, null, subscriptions)
 
   events.on('InlineAccept' as any, (acceptedLength, item) => {
-    if (acceptedLength) {
+    if (acceptedLength && client.isRunning()) {
       client.sendNotification('textDocument/didPartiallyAcceptCompletion', { item, acceptedLength })
     }
   }, null, subscriptions)
