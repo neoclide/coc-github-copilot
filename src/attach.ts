@@ -9,8 +9,8 @@ interface SigInResult {
     title: string
   }
 }
-const commentNamespace = 'copolitComment'
-const seperatorNamespace = 'copolitSpeerator'
+const commentNamespace = 'copilotComment'
+const seperatorNamespace = 'copilotSpeerator'
 
 function uuid(): string {
   // Generate a UUID v4
@@ -71,7 +71,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       partialResultToken
     }
     const cmd = config.get<string>('openPanelCommand', 'keepalt vs')
-    const uri = `github-copolit:///panel/${partialResultToken}`
+    const uri = `github-copilot:///panel/${partialResultToken}`
     nvim.pauseNotification()
     nvim.command(`${cmd} ${uri}`, true)
     nvim.call('bufnr', ['%'], true)
@@ -112,7 +112,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     }
   }
 
-  subscriptions.push(workspace.registerTextDocumentContentProvider('github-copolit', {
+  subscriptions.push(workspace.registerTextDocumentContentProvider('github-copilot', {
     provideTextDocumentContent: async (uri: Uri): Promise<string> => {
       let panel = panels.get(uri.toString());
       if (!panel) return ''
@@ -173,12 +173,17 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     }
   }, null, subscriptions)
 
+  let limitReached = false
   client.onNotification('didChangeStatus', event => {
     let msg: string = event.message ?? ''
     statusItem.isProgress = event.busy === true
     switch (event.kind) {
       case 'Error':
         if (msg.length > 0) {
+          if (msg.includes('limit reached')) {
+            if (limitReached) return
+            limitReached = true
+          }
           if (msg.includes('token is invalid')) {
             window.showErrorMessage(msg, 'Sign in').then(res => {
               if (res != null) {

@@ -13,7 +13,7 @@ export function formatInsertText(text: string, opts: FormattingOptions): string 
     if (isTab && opts.insertSpaces) {
       space = ind.repeat(space.length)
     } else if (!isTab && !opts.insertSpaces) {
-      space = ind.repeat(space.length / tabSize)
+      space = ind.repeat(Math.floor(space.length / tabSize))
     }
     return space + line.slice(len)
   })
