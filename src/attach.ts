@@ -54,6 +54,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       void window.showErrorMessage('Current document is not attached');
       return
     }
+
     const targetWinid = await nvim.call('win_getid') as number
     if (!commentNs) commentNs = await nvim.createNamespace(commentNamespace)
     if (!seperatorNs) seperatorNs = await nvim.createNamespace(seperatorNamespace)
@@ -69,7 +70,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       formattingOptions,
       partialResultToken
     }
-    const cmd = config.get<string>('panelCommand', 'keepalt vs')
+    const cmd = config.get<string>('openPanelCommand', 'keepalt vs')
     const uri = `github-copolit:///panel/${partialResultToken}`
     nvim.pauseNotification()
     nvim.command(`${cmd} ${uri}`, true)
@@ -91,17 +92,23 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     }
     const panel = new Panel(res[0][1] as number, res[0][2] as number, partialResultToken, client, tokenSource, conf)
     panels.set(panelUri.toString(), panel);
-    const token = tokenSource.token
-    await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(res => {
-      if (!token.isCancellationRequested) {
-        if (res && Array.isArray(res.items)) {
-          for (const item of res.items) {
-            panel.addItem(item)
+    try {
+      const token = tokenSource.token
+      await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(res => {
+        if (!token.isCancellationRequested) {
+          if (res && Array.isArray(res.items)) {
+            for (const item of res.items) {
+              panel.addItem(item)
+            }
           }
         }
-      }
+        panel.detachListener()
+      })
+    } catch (e) {
       panel.detachListener()
-    })
+      const message = e instanceof Error ? e.message : String(e)
+      void window.showErrorMessage(`GitHub Copilot client error: ${message}`)
+    }
   }
 
   subscriptions.push(workspace.registerTextDocumentContentProvider('github-copolit', {

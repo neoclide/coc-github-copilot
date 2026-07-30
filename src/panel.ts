@@ -68,7 +68,7 @@ export default class Panel {
     this.buffer = workspace.nvim.createBuffer(this._bufnr)
     this.buffer.setOption('modifiable', false)
     this.interval = setInterval(() => {
-      this.setCommetntVtext(true)
+      this.setCommentVtext(true)
     }, 100)
     this.listener = client.onProgress<{ items: InlineCompletionItem[] }>(new ProgressType(), this.token, async result => {
       if (result && Array.isArray(result.items)) {
@@ -132,7 +132,7 @@ export default class Panel {
     }
   }
 
-  public setCommetntVtext(progress = false): void {
+  public setCommentVtext(progress = false): void {
     if (this._disposed) return
     let text = progress ? frames[Math.floor((new Date).getMilliseconds() / 100)] + ' Loading suggestions ' : ''
     if (this.items.length > 0) text += `Press ${keys.accept} to accepted the suggestion, press "${keys.next}" or "${keys.prev}" to navigate`
@@ -159,7 +159,7 @@ export default class Panel {
   }
 
   public detachListener(): void {
-    this.setCommetntVtext(false)
+    this.setCommentVtext(false)
     clearInterval(this.interval)
     this.listener?.dispose()
     this.listener = undefined
