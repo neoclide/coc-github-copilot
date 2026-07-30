@@ -31,7 +31,9 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       panel.dispose()
     }
     panels.clear()
-    nvim.command(`silent! bwipeout ${bufnrs.join(' ')}`, true)
+    if (bufnrs.length > 0) {
+      nvim.command(`silent! bwipeout ${bufnrs.join(' ')}`, true)
+    }
   }))
 
   events.on('WinClosed', async (winid: number) => {
