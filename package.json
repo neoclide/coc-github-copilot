@@ -1,6 +1,6 @@
 {
   "name": "coc-github-copilot",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "GitHub Copilot extension for coc.nvim",
   "author": "Qiming Zhao <chemzqm@gmail.com>",
   "license": "MIT",
@@ -45,7 +45,10 @@
           "scope": "application",
           "description": "Enabled filetypes, use \"*\" or null for all filetypes.",
           "items": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "github-copilot.trace.server.verbosity": {
@@ -112,12 +115,12 @@
     "prepare": "node esbuild.js"
   },
   "dependencies": {
-    "@github/copilot-language-server": "latest"
+    "@github/copilot-language-server": "<2"
   },
   "devDependencies": {
     "@types/node": "^16.18.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.5.4",
-    "coc.nvim": "^0.0.83-next.23"
+    "coc.nvim": "^0.0.83-next.24"
   }
 }
