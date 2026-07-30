@@ -92,8 +92,8 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     }
     const panel = new Panel(res[0][1] as number, res[0][2] as number, partialResultToken, client, tokenSource, conf)
     panels.set(panelUri.toString(), panel);
+    const token = tokenSource.token
     try {
-      const token = tokenSource.token
       await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(res => {
         if (!token.isCancellationRequested) {
           if (res && Array.isArray(res.items)) {
@@ -106,6 +106,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       })
     } catch (e) {
       panel.detachListener()
+      if (token.isCancellationRequested) return
       const message = e instanceof Error ? e.message : String(e)
       void window.showErrorMessage(`GitHub Copilot client error: ${message}`)
     }
@@ -132,11 +133,14 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       } catch (e) {
         // ignore Error
       }
-      await window.showInformationMessage(`Please copy your user code: ${result.userCode}`, 'Continue').then(selected => {
+      void window.showInformationMessage(`Please copy your user code: ${result.userCode}`, 'Continue').then(selected => {
         if (selected != null) {
           commands.executeCommand(result.command.command, ...result.command.arguments)
         }
       })
+    }, e => {
+      const message = e instanceof Error ? e.message : String(e)
+      void window.showErrorMessage(`Error on signIn: ${message}`)
     })
   }))
 

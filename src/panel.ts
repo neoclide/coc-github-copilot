@@ -81,7 +81,7 @@ export default class Panel {
   }
 
   private addKeymappings(): void {
-    workspace.registerLocalKeymap(this._bufnr, 'n', keys.accept, async () => {
+    this.disposables.push(workspace.registerLocalKeymap(this._bufnr, 'n', keys.accept, async () => {
       let lnum = await workspace.nvim.call('line', '.') as number
       let curr = this.getCurrentItem(lnum - 1)
       if (curr) {
@@ -104,13 +104,13 @@ export default class Panel {
           void window.showWarningMessage(`Target buffer ${this.config.targetUri} is not attached`)
         }
       }
-    })
-    workspace.registerLocalKeymap(this._bufnr, 'n', keys.next, async () => {
+    }))
+    this.disposables.push(workspace.registerLocalKeymap(this._bufnr, 'n', keys.next, async () => {
       await this.navigate(true)
-    })
-    workspace.registerLocalKeymap(this._bufnr, 'n', keys.prev, async () => {
+    }))
+    this.disposables.push(workspace.registerLocalKeymap(this._bufnr, 'n', keys.prev, async () => {
       await this.navigate(false)
-    })
+    }))
   }
 
   private async navigate(next: boolean): Promise<void> {
