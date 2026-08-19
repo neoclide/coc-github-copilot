@@ -38,15 +38,15 @@ export async function activate(context: ExtensionContext): Promise<void> {
     },
     outputChannelName: 'github-copilot',
     middleware: {
-      sendRequest: (type, param: any, token, next): Promise<any> => {
+      sendRequest: async (type, param: any, token, next): Promise<any> => {
         if (typeof type === 'object' && type.method == 'textDocument/inlineCompletion') {
           if (!enableCompletion) {
             return Promise.resolve(undefined)
           }
           let textDocument = param.textDocument
           let doc = workspace.getDocument(textDocument.uri)
-          if (!doc || doc.getVar('copilot_disable')) {
-            return Promise.resolve(undefined)
+          if (!doc || await doc.getVar('copilot_disable')) {
+            return undefined
           }
           param.textDocument = param.textDocument ?? { uri: doc.uri }
           param.textDocument.version = doc.version

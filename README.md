@@ -1,5 +1,7 @@
 # coc-github-copilot
 
+[![CI](https://github.com/neoclide/coc-github-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/neoclide/coc-github-copilot/actions/workflows/ci.yml)
+
 Github copilot support with coc.nvim.
 
 This extension using inline completion feature of coc.nvim, see `:h coc-inlineCompletion`.
@@ -28,6 +30,8 @@ In your vim/neovim, run command:
 - `github-copilot.signIn` Sign in to Github Copilot.
 - `github-copilot.signOut` Sign out to Github Copilot.
 - `github-copilot.openPanel` Open copilot completions panel.
+- `github-copilot.status` Show the service, authentication, current buffer configuration and content policy status.
+- `github-copilot.quota` Show the completion quota, plan and reset date.
 
 ## Configurations
 

@@ -107,20 +107,43 @@
       {
         "title": "Open copilot completions panel",
         "command": "github-copilot.openPanel"
+      },
+      {
+        "title": "Check GitHub Copilot status",
+        "command": "github-copilot.status"
+      },
+      {
+        "title": "Show GitHub Copilot quota",
+        "command": "github-copilot.quota"
       }
     ]
   },
   "scripts": {
     "build": "node esbuild.js",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test --experimental-strip-types test/*.test.mts",
+    "test:integration": "coc-test \"test/**/*.test.ts\"",
+    "test:integration:nvim": "coc-test --nvim \"test/**/*.test.ts\"",
+    "test:integration:vim": "coc-test --vim \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepare": "node esbuild.js"
   },
   "dependencies": {
     "@github/copilot-language-server": "<2"
   },
   "devDependencies": {
-    "@types/node": "^16.18.0",
+    "@types/node": "^22.19.0",
+    "coc-test": "^0.1.8",
+    "coc.nvim": "^0.0.83-next.26",
     "esbuild": "^0.25.0",
-    "typescript": "^5.5.4",
-    "coc.nvim": "^0.0.83-next.24"
+    "typescript": "^6.0.3"
+  },
+  "coc-test": {
+    "entryFile": "src/index.ts",
+    "user-settings": {
+      "github-copilot.enableCompletion": false,
+      "github-copilot.filetypes": [
+        "javascript"
+      ]
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { CancellationTokenSource, commands, Disposable, events, InlineCompletionItem, LanguageClient, State, Uri, window, workspace, WorkspaceConfiguration } from 'coc.nvim';
+import { BufferStatus, CheckFileStatusResult, CheckQuotaResult, CheckStatusResult, configurationSource, formatQuotaReport, formatServiceState, formatStatusReport, isFiletypeEnabled, StatusReport } from './diagnostics';
 import Panel, { PanelConfig } from './panel';
 
 interface SigInResult {
@@ -11,6 +12,67 @@ interface SigInResult {
 }
 const commentNamespace = 'copilotComment'
 const seperatorNamespace = 'copilotSpeerator'
+
+function errorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return String(error)
+}
+
+export async function collectStatusReport(client: LanguageClient, config: WorkspaceConfiguration): Promise<StatusReport> {
+  const doc = await workspace.document
+  let buffer: BufferStatus | undefined
+  if (doc?.attached) {
+    const scopedConfig = workspace.getConfiguration('github-copilot', doc)
+    const configEnabled = scopedConfig.get<boolean>('enableCompletion', true)
+    const filetypes = config.get<Array<string | null>>('filetypes', ['*'])
+    const [copilotDisabled, inlineDisabled] = await Promise.all([
+      doc.getVar('copilot_disable'),
+      doc.getVar('inline_disable')
+    ])
+    buffer = {
+      configEnabled,
+      configSource: configurationSource(scopedConfig.inspect<boolean>('enableCompletion')),
+      filetype: doc.filetype,
+      filetypeEnabled: isFiletypeEnabled(filetypes, doc.filetype),
+      copilotDisabled: Boolean(copilotDisabled),
+      inlineDisabled: Boolean(inlineDisabled)
+    }
+  }
+
+  const running = client.isRunning()
+  let authentication: CheckStatusResult | undefined
+  let authenticationError: string | undefined
+  let file: CheckFileStatusResult | undefined
+  let fileError: string | undefined
+  if (running) {
+    const [authenticationResult, fileResult] = await Promise.allSettled([
+      client.sendRequest<CheckStatusResult>('checkStatus', {}),
+      buffer && doc ? client.sendRequest<CheckFileStatusResult>('checkFileStatus', { uri: doc.uri }) : Promise.resolve(undefined)
+    ])
+    if (authenticationResult.status === 'fulfilled') {
+      authentication = authenticationResult.value
+    } else {
+      authenticationError = errorMessage(authenticationResult.reason)
+    }
+    if (fileResult.status === 'fulfilled') {
+      file = fileResult.value
+    } else {
+      fileError = errorMessage(fileResult.reason)
+    }
+  }
+
+  return {
+    service: formatServiceState(client.state),
+    running,
+    authentication,
+    authenticationError,
+    buffer,
+    file,
+    fileError
+  }
+}
 
 function uuid(): string {
   // Generate a UUID v4
@@ -157,6 +219,24 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       await openPanel(client, config)
     } else {
       void window.showErrorMessage('GitHub Copilot client is not running.')
+    }
+  }))
+
+  subscriptions.push(commands.registerCommand('github-copilot.status', async () => {
+    void window.showInformationMessage(formatStatusReport(await collectStatusReport(client, config)))
+  }))
+
+  subscriptions.push(commands.registerCommand('github-copilot.quota', async () => {
+    if (!client.isRunning()) {
+      void window.showErrorMessage('GitHub Copilot client is not running.')
+      return
+    }
+    try {
+      const result = await client.sendRequest<CheckQuotaResult>('checkQuota', {})
+      void window.showInformationMessage(formatQuotaReport(result))
+    } catch (e) {
+      const message = errorMessage(e)
+      void window.showErrorMessage(`Error checking GitHub Copilot quota: ${message}`)
     }
   }))
 
