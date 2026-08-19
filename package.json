@@ -4,6 +4,7 @@
   "description": "GitHub Copilot extension for coc.nvim",
   "author": "Qiming Zhao <chemzqm@gmail.com>",
   "license": "MIT",
+  "repository": "https://github.com/neoclide/coc-github-copilot",
   "main": "lib/index.js",
   "keywords": [
     "coc.nvim",
