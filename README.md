@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" alt="GitHub Copilot" width="128">
+</p>
+
 # coc-github-copilot
 
 [![CI](https://github.com/neoclide/coc-github-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/neoclide/coc-github-copilot/actions/workflows/ci.yml)

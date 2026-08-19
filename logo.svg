@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">GitHub Copilot</title>
+  <desc id="desc">A pair of interlocking code brackets with a sparkle</desc>
+  <rect width="128" height="128" rx="28" fill="#24292f"/>
+  <path d="M47 38 26 64l21 26 9-8-15-18 15-18-9-8Zm34 0-9 8 15 18-15 18 9 8 21-26-21-26Z" fill="#fff"/>
+  <path d="m86 25 3.6 10.4L100 39l-10.4 3.6L86 53l-3.6-10.4L72 39l10.4-3.6L86 25Z" fill="#54aeff"/>
+</svg>
