@@ -1,5 +1,6 @@
 import { Buffer, CancellationTokenSource, commands, Disposable, disposeAll, FormattingOptions, InlineCompletionItem, LanguageClient, Mutex, nvim, Position, ProgressType, Range, snippetManager, StringValue, TextEdit, window, workspace } from 'coc.nvim';
-import { canAcceptPanelEdit, getEditEndPosition } from './panelUtils';
+import type { WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport } from 'coc.nvim';
+import { canAcceptPanelEdit, formatPanelProgress, getEditEndPosition } from './panelUtils';
 
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
@@ -52,6 +53,8 @@ export interface PanelItem {
   readonly item: InlineCompletionItem
 }
 
+export type PanelProgress = WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd
+
 export class Panel {
   private buffer: Buffer
   private lines: string[] = ['']
@@ -61,13 +64,18 @@ export class Panel {
   private _disposed = false
   private interval: NodeJS.Timeout | undefined
   private items: PanelItem[] = []
+  private progressMessage: string | undefined
+  private progressError: string | undefined
+  private progressDone = false
+  private workDoneListener: Disposable | undefined
   constructor(
     private _bufnr: number,
     public readonly winid: number,
     private token: string,
     private client: LanguageClient,
     private tokenSource: CancellationTokenSource | undefined,
-    private config: PanelConfig
+    private config: PanelConfig,
+    workDoneToken?: string
   ) {
     this.buffer = workspace.nvim.createBuffer(this._bufnr)
     this.buffer.setOption('modifiable', false)
@@ -81,7 +89,32 @@ export class Panel {
         }
       }
     })
+    if (workDoneToken !== undefined) {
+      this.workDoneListener = client.onProgress<PanelProgress>(new ProgressType(), workDoneToken, result => {
+        this.handleProgress(result)
+      })
+    }
     this.addKeymappings()
+  }
+
+  public handleProgress(progress: PanelProgress): void {
+    if (this._disposed) return
+    this.progressError = undefined
+    this.progressMessage = progress.message
+    this.progressDone = progress.kind === 'end'
+    this.setCommentVtext(false)
+  }
+
+  public setProgressError(message: string): void {
+    if (this._disposed) return
+    this.progressError = message
+    this.progressDone = true
+    this.setCommentVtext(false)
+  }
+
+  public completeProgress(message?: string): void {
+    if (this._disposed || this.progressDone || this.progressError) return
+    this.handleProgress({ kind: 'end', message })
   }
 
   private addKeymappings(): void {
@@ -116,7 +149,15 @@ export class Panel {
 
     const insertText = await getInsertText(item, this.config.formatOptions)
     const endPosition = getEditEndPosition(range.start, insertText)
-    await doc.applyEdits([TextEdit.replace(range, insertText)])
+    if (StringValue.isSnippet(item.insertText)) {
+      const inserted = await snippetManager.insertBufferSnippet(doc.bufnr, item.insertText.value, range)
+      if (!inserted) {
+        void window.showErrorMessage('Unable to insert the Copilot snippet.')
+        return false
+      }
+    } else {
+      await doc.applyEdits([TextEdit.replace(range, insertText)])
+    }
     if (item.command) {
       try {
         await commands.executeCommand(item.command.command, ...item.command.arguments ?? [])
@@ -165,7 +206,8 @@ export class Panel {
 
   public setCommentVtext(progress = false): void {
     if (this._disposed) return
-    let text = progress ? frames[Math.floor((new Date).getMilliseconds() / 100)] + ' Loading suggestions ' : ''
+    const frame = progress ? frames[Math.floor((new Date).getMilliseconds() / 100)] : ''
+    let text = formatPanelProgress(this.items.length, this.progressDone, this.progressError, this.progressMessage, frame)
     if (this.items.length > 0) text += `Press ${keys.accept} to accepted the suggestion, press "${keys.next}" or "${keys.prev}" to navigate`
     this.buffer.clearNamespace(this.config.commentNs)
     this.buffer.setVirtualText(this.config.commentNs, 0, [[text, 'Comment']], {
@@ -194,10 +236,12 @@ export class Panel {
     clearInterval(this.interval)
     this.listener?.dispose()
     this.listener = undefined
+    this.workDoneListener?.dispose()
+    this.workDoneListener = undefined
   }
 
-  public addItem(item: InlineCompletionItem): void {
-    this.mutex.use(async () => {
+  public async addItem(item: InlineCompletionItem): Promise<void> {
+    await this.mutex.use(async () => {
       if (this._disposed) return
       let content = await getInsertText(item, this.config.formatOptions)
       let startIndex = this.lines.length
@@ -251,6 +295,8 @@ export class Panel {
     }
     this.listener?.dispose()
     this.listener = undefined
+    this.workDoneListener?.dispose()
+    this.workDoneListener = undefined
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource.dispose()

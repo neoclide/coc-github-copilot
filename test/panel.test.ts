@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { beforeEach, describe, it } from 'node:test'
-import { Disposable, Range, TextEdit, workspace } from 'coc.nvim'
+import { Disposable, Range, snippetManager, StringValue, TextEdit, workspace } from 'coc.nvim'
 import type { Document, LanguageClient, Position } from 'coc.nvim'
 import { Panel, PanelConfig } from '../src/panel.ts'
 
@@ -123,5 +123,20 @@ describe('Copilot panel acceptance', () => {
     await workspace.nvim.input('X')
     await waitForDocument(doc.bufnr, 'const value = 42Xtail')
     await workspace.nvim.command('stopinsert')
+  })
+
+  it('inserts snippet items through coc.nvim snippet sessions', async () => {
+    const doc = await workspace.document
+    const position = { line: 0, character: 'const value = '.length }
+    const panel = await createPanel(doc, position, false)
+
+    assert.equal(await panel.acceptItem({
+      insertText: StringValue.createSnippet('fn(${1:arg})$0'),
+      range: Range.create(position, position)
+    }), true)
+
+    await waitForDocument(doc.bufnr, 'const value = fn(arg)')
+    assert.equal(snippetManager.getSession(doc.bufnr) != null, true)
+    snippetManager.cancel()
   })
 })

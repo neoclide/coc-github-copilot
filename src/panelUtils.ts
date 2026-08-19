@@ -1,5 +1,17 @@
 import type { Position } from 'coc.nvim'
 
+export function formatPanelProgress(itemCount: number, done: boolean, error: string | undefined, message: string | undefined, frame = ''): string {
+  let text: string
+  if (error) {
+    text = `Error: ${error}`
+  } else if (done) {
+    text = `Generated ${itemCount} suggestion${itemCount === 1 ? '' : 's'}`
+  } else {
+    text = `${frame ? `${frame} ` : ''}Generating suggestions (${itemCount})`
+  }
+  return message ? `${text} — ${message}` : text
+}
+
 export function canAcceptPanelEdit(
   currentVersion: number,
   requestedVersion: number,

@@ -136,6 +136,7 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     if (wasInsert) await nvim.command('stopinsert')
     const formattingOptions = await workspace.getFormatOptions(doc.uri)
     const partialResultToken = uuid()
+    const workDoneToken = uuid()
     const params = {
       textDocument: {
         uri: doc.uri,
@@ -143,7 +144,8 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       },
       position,
       formattingOptions,
-      partialResultToken
+      partialResultToken,
+      workDoneToken
     }
     const cmd = config.get<string>('openPanelCommand', 'keepalt vs')
     const uri = `github-copilot:///panel/${partialResultToken}`
@@ -168,24 +170,26 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       targetLine,
       wasInsert
     }
-    const panel = new Panel(res[0][1] as number, res[0][2] as number, partialResultToken, client, tokenSource, conf)
+    const panel = new Panel(res[0][1] as number, res[0][2] as number, partialResultToken, client, tokenSource, conf, workDoneToken)
     panels.set(panelUri.toString(), panel);
     const token = tokenSource.token
     try {
-      await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(res => {
+      await client.sendRequest<{ items: InlineCompletionItem[] }>('textDocument/copilotPanelCompletion', params, token).then(async res => {
         if (!token.isCancellationRequested) {
           if (res && Array.isArray(res.items)) {
             for (const item of res.items) {
-              panel.addItem(item)
+              await panel.addItem(item)
             }
           }
         }
+        panel.completeProgress()
         panel.detachListener()
       })
     } catch (e) {
       panel.detachListener()
       if (token.isCancellationRequested) return
       const message = e instanceof Error ? e.message : String(e)
+      panel.setProgressError(message)
       void window.showErrorMessage(`GitHub Copilot client error: ${message}`)
     }
   }
