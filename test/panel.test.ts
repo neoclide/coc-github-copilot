@@ -138,5 +138,6 @@ describe('Copilot panel acceptance', () => {
     await waitForDocument(doc.bufnr, 'const value = fn(arg)')
     assert.equal(snippetManager.getSession(doc.bufnr) != null, true)
     snippetManager.cancel()
+    await new Promise<void>(resolve => setImmediate(resolve))
   })
 })

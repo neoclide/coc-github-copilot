@@ -1,6 +1,7 @@
 import { CancellationTokenSource, commands, Disposable, events, InlineCompletionItem, LanguageClient, State, Uri, window, workspace, WorkspaceConfiguration } from 'coc.nvim';
+import { version as extensionVersion } from '../package.json'
 import { getDocumentCompletionEnabled, getDocumentLanguageCompletionOverride, registerControls } from './controls';
-import { BufferStatus, CheckFileStatusResult, CheckQuotaResult, CheckStatusResult, configurationSource, formatQuotaReport, formatServiceState, formatStatusReport, isFiletypeEnabled, StatusReport } from './diagnostics';
+import { BufferStatus, CheckFileStatusResult, CheckQuotaResult, CheckStatusResult, configurationSource, DiagnosticReport, formatDiagnosticReport, formatQuotaReport, formatServiceState, formatStatusReport, isFiletypeEnabled, StatusReport } from './diagnostics';
 import { Panel, PanelConfig } from './panel';
 
 interface SigInResult {
@@ -79,6 +80,19 @@ export async function collectStatusReport(client: LanguageClient, config: Worksp
     buffer,
     file,
     fileError
+  }
+}
+
+function collectDiagnosticReport(client: LanguageClient): DiagnosticReport {
+  const serverInfo = client.initializeResult?.serverInfo
+  return {
+    extensionVersion,
+    languageServerName: serverInfo?.name || 'GitHub Copilot Language Server',
+    languageServerVersion: serverInfo?.version || 'unknown',
+    nodeVersion: process.version,
+    editor: workspace.isVim ? 'Vim' : 'Neovim',
+    editorVersion: workspace.env.version,
+    workspaceFolders: [...workspace.folderPaths]
   }
 }
 
@@ -246,6 +260,24 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
 
   subscriptions.push(commands.registerCommand('github-copilot.status', async () => {
     void window.showInformationMessage(formatStatusReport(await collectStatusReport(client, config)))
+  }))
+
+  subscriptions.push(commands.registerCommand('github-copilot.diagnostics', async () => {
+    const action = await window.showInformationMessage(
+      formatDiagnosticReport(collectDiagnosticReport(client)),
+      'Open Log',
+      'Restart Service'
+    )
+    if (action === 'Open Log') {
+      client.outputChannel.show()
+    } else if (action === 'Restart Service') {
+      try {
+        await client.restart()
+        void window.showInformationMessage('GitHub Copilot service restarted.')
+      } catch (error) {
+        void window.showErrorMessage(`Unable to restart GitHub Copilot service: ${errorMessage(error)}`)
+      }
+    }
   }))
 
   subscriptions.push(commands.registerCommand('github-copilot.quota', async () => {

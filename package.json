@@ -123,6 +123,10 @@
         "command": "github-copilot.status"
       },
       {
+        "title": "Show GitHub Copilot diagnostics",
+        "command": "github-copilot.diagnostics"
+      },
+      {
         "title": "Show GitHub Copilot quota",
         "command": "github-copilot.quota"
       },

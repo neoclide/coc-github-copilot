@@ -49,6 +49,28 @@ export interface StatusReport {
   fileError?: string
 }
 
+export interface DiagnosticReport {
+  extensionVersion: string
+  languageServerName: string
+  languageServerVersion: string
+  nodeVersion: string
+  editor: string
+  editorVersion: string
+  workspaceFolders: string[]
+}
+
+export function formatDiagnosticReport(report: DiagnosticReport): string {
+  const folders = report.workspaceFolders.length > 0 ? report.workspaceFolders.join(', ') : '(none)'
+  return [
+    'GitHub Copilot diagnostics',
+    `Extension: ${report.extensionVersion}`,
+    `Language Server: ${report.languageServerName} ${report.languageServerVersion}`,
+    `Node: ${report.nodeVersion}`,
+    `Editor: ${report.editor} ${report.editorVersion}`,
+    `Workspace folders: ${folders}`
+  ].join('\n')
+}
+
 export function configurationSource(inspect: ConfigurationInspect<boolean> | undefined): string {
   if (!inspect) return 'unknown'
   if (inspect.workspaceFolderValue !== undefined) return 'workspace folder'

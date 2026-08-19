@@ -4,6 +4,7 @@ import { commands, ConfigurationTarget, workspace } from 'coc.nvim'
 import type { LanguageClient } from 'coc.nvim'
 import { collectStatusReport } from '../src/attach.ts'
 import { applyCompletionAction, changeCompletionModel, completionCommandIds, getDocumentCompletionEnabled, getLanguageCompletionOverride } from '../src/controls.ts'
+import { formatDiagnosticReport } from '../src/diagnostics.ts'
 
 let bufferId = 0
 
@@ -37,10 +38,30 @@ beforeEach(async () => {
 describe('GitHub Copilot diagnostic commands', () => {
   it('registers the status and quota commands', () => {
     assert.equal(commands.has('github-copilot.status'), true)
+    assert.equal(commands.has('github-copilot.diagnostics'), true)
     assert.equal(commands.has('github-copilot.quota'), true)
     assert.equal(commands.has('github-copilot.changeCompletionModel'), true)
     assert.equal(commands.has(completionCommandIds.enable), true)
     assert.equal(commands.has(completionCommandIds.disable), true)
+  })
+
+  it('formats runtime and workspace diagnostic information', () => {
+    assert.equal(formatDiagnosticReport({
+      extensionVersion: '0.0.5',
+      languageServerName: 'Copilot LS',
+      languageServerVersion: '1.2.3',
+      nodeVersion: 'v22.0.0',
+      editor: 'Neovim',
+      editorVersion: '0.10.0',
+      workspaceFolders: ['/tmp/one', '/tmp/two']
+    }), [
+      'GitHub Copilot diagnostics',
+      'Extension: 0.0.5',
+      'Language Server: Copilot LS 1.2.3',
+      'Node: v22.0.0',
+      'Editor: Neovim 0.10.0',
+      'Workspace folders: /tmp/one, /tmp/two'
+    ].join('\n'))
   })
 
   it('collects configuration and buffer-local state from the editor', async () => {

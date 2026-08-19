@@ -30,6 +30,7 @@ In your vim/neovim, run command:
 - `github-copilot.signOut` Sign out to Github Copilot.
 - `github-copilot.openPanel` Open copilot completions panel.
 - `github-copilot.status` Show the service, authentication, current buffer configuration and content policy status.
+- `github-copilot.diagnostics` Show extension, language server, runtime and workspace details, with actions to open the log or restart the service.
 - `github-copilot.quota` Show the completion quota, plan and reset date.
 - `github-copilot.changeCompletionModel` Select a completion-scoped model reported by the Copilot language server.
 - `github-copilot.enable` Enable completions after choosing global, current-language or current-buffer scope.
