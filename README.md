@@ -32,9 +32,8 @@ In your vim/neovim, run command:
 - `github-copilot.status` Show the service, authentication, current buffer configuration and content policy status.
 - `github-copilot.quota` Show the completion quota, plan and reset date.
 - `github-copilot.changeCompletionModel` Select a completion-scoped model reported by the Copilot language server.
-- `github-copilot.enableGlobal`, `github-copilot.disableGlobal`, `github-copilot.toggleGlobal` Control completions globally.
-- `github-copilot.enableLanguage`, `github-copilot.disableLanguage`, `github-copilot.toggleLanguage` Control completions for the current language.
-- `github-copilot.enableBuffer`, `github-copilot.disableBuffer`, `github-copilot.toggleBuffer` Control completions for the current buffer.
+- `github-copilot.enable` Enable completions after choosing global, current-language or current-buffer scope.
+- `github-copilot.disable` Disable completions after choosing global, current-language or current-buffer scope.
 
 ## Configurations
 

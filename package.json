@@ -131,40 +131,12 @@
         "command": "github-copilot.changeCompletionModel"
       },
       {
-        "title": "Enable GitHub Copilot completions globally",
-        "command": "github-copilot.enableGlobal"
+        "title": "Enable GitHub Copilot completions",
+        "command": "github-copilot.enable"
       },
       {
-        "title": "Disable GitHub Copilot completions globally",
-        "command": "github-copilot.disableGlobal"
-      },
-      {
-        "title": "Toggle GitHub Copilot completions globally",
-        "command": "github-copilot.toggleGlobal"
-      },
-      {
-        "title": "Enable GitHub Copilot completions for current language",
-        "command": "github-copilot.enableLanguage"
-      },
-      {
-        "title": "Disable GitHub Copilot completions for current language",
-        "command": "github-copilot.disableLanguage"
-      },
-      {
-        "title": "Toggle GitHub Copilot completions for current language",
-        "command": "github-copilot.toggleLanguage"
-      },
-      {
-        "title": "Enable GitHub Copilot completions for current buffer",
-        "command": "github-copilot.enableBuffer"
-      },
-      {
-        "title": "Disable GitHub Copilot completions for current buffer",
-        "command": "github-copilot.disableBuffer"
-      },
-      {
-        "title": "Toggle GitHub Copilot completions for current buffer",
-        "command": "github-copilot.toggleBuffer"
+        "title": "Disable GitHub Copilot completions",
+        "command": "github-copilot.disable"
       }
     ]
   },

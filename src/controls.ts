@@ -4,7 +4,7 @@ import type { Document } from 'coc.nvim'
 const completionSetting = 'github-copilot.enableCompletion'
 
 export type CompletionScope = 'global' | 'language' | 'buffer'
-export type CompletionAction = 'enable' | 'disable' | 'toggle'
+export type CompletionAction = 'enable' | 'disable'
 
 export interface CopilotModel {
   id: string
@@ -12,22 +12,9 @@ export interface CopilotModel {
   scopes: string[]
 }
 
-export const completionCommandIds: Record<CompletionScope, Record<CompletionAction, string>> = {
-  global: {
-    enable: 'github-copilot.enableGlobal',
-    disable: 'github-copilot.disableGlobal',
-    toggle: 'github-copilot.toggleGlobal'
-  },
-  language: {
-    enable: 'github-copilot.enableLanguage',
-    disable: 'github-copilot.disableLanguage',
-    toggle: 'github-copilot.toggleLanguage'
-  },
-  buffer: {
-    enable: 'github-copilot.enableBuffer',
-    disable: 'github-copilot.disableBuffer',
-    toggle: 'github-copilot.toggleBuffer'
-  }
+export const completionCommandIds: Record<CompletionAction, string> = {
+  enable: 'github-copilot.enable',
+  disable: 'github-copilot.disable'
 }
 
 function errorMessage(error: unknown): string {
@@ -79,17 +66,6 @@ async function getCurrentDocument() {
   return doc
 }
 
-export async function getCompletionEnabled(scope: CompletionScope): Promise<boolean> {
-  if (scope === 'global') {
-    return workspace.getConfiguration('github-copilot', null).get<boolean>('enableCompletion', true)
-  }
-  const doc = await getCurrentDocument()
-  if (scope === 'language') {
-    return getDocumentCompletionEnabled(doc)
-  }
-  return !Boolean(await doc.buffer.getVar('coc_copilot_disable'))
-}
-
 export async function setCompletionEnabled(scope: CompletionScope, enabled: boolean): Promise<void> {
   if (scope === 'global') {
     await workspace.getConfiguration('github-copilot', null)
@@ -112,12 +88,6 @@ export async function setCompletionEnabled(scope: CompletionScope, enabled: bool
   await doc.buffer.setVar('coc_copilot_disable', enabled ? 0 : 1)
 }
 
-export async function toggleCompletionEnabled(scope: CompletionScope): Promise<boolean> {
-  const enabled = !await getCompletionEnabled(scope)
-  await setCompletionEnabled(scope, enabled)
-  return enabled
-}
-
 function scopeLabel(scope: CompletionScope): string {
   switch (scope) {
     case 'global':
@@ -127,6 +97,36 @@ function scopeLabel(scope: CompletionScope): string {
     case 'buffer':
       return 'for the current buffer'
   }
+}
+
+function scopePickerLabel(scope: CompletionScope, languageId?: string): string {
+  if (scope === 'global') return 'Global'
+  if (scope === 'language') return `Current language${languageId ? ` (${languageId})` : ''}`
+  return 'Current buffer'
+}
+
+export async function pickCompletionScope(
+  action: CompletionAction,
+  showMenu: typeof window.showMenuPicker = window.showMenuPicker
+): Promise<CompletionScope | undefined> {
+  const doc = await workspace.document
+  const scopes: CompletionScope[] = ['global', 'language', 'buffer']
+  const items: MenuItem[] = scopes.map(scope => ({ text: scopePickerLabel(scope, doc?.languageId) }))
+  const index = await showMenu(items, {
+    title: `${action === 'enable' ? 'Enable' : 'Disable'} GitHub Copilot completions at…`,
+    position: 'center'
+  })
+  return index >= 0 && index < scopes.length ? scopes[index] : undefined
+}
+
+export async function applyCompletionAction(
+  action: CompletionAction,
+  showMenu: typeof window.showMenuPicker = window.showMenuPicker
+): Promise<CompletionScope | undefined> {
+  const scope = await pickCompletionScope(action, showMenu)
+  if (!scope) return undefined
+  await setCompletionEnabled(scope, action === 'enable')
+  return scope
 }
 
 function completionModels(value: unknown): CopilotModel[] {
@@ -163,25 +163,15 @@ export async function changeCompletionModel(
 }
 
 export function registerControls(subscriptions: Disposable[], client: LanguageClient): void {
-  const scopes: CompletionScope[] = ['global', 'language', 'buffer']
-  const actions: CompletionAction[] = ['enable', 'disable', 'toggle']
-  for (const scope of scopes) {
-    for (const action of actions) {
-      subscriptions.push(commands.registerCommand(completionCommandIds[scope][action], async () => {
-        try {
-          let enabled: boolean
-          if (action === 'toggle') {
-            enabled = await toggleCompletionEnabled(scope)
-          } else {
-            enabled = action === 'enable'
-            await setCompletionEnabled(scope, enabled)
-          }
-          void window.showInformationMessage(`GitHub Copilot completions ${enabled ? 'enabled' : 'disabled'} ${scopeLabel(scope)}.`)
-        } catch (error) {
-          void window.showErrorMessage(`Unable to update GitHub Copilot completions: ${errorMessage(error)}`)
-        }
-      }))
-    }
+  for (const action of ['enable', 'disable'] as CompletionAction[]) {
+    subscriptions.push(commands.registerCommand(completionCommandIds[action], async () => {
+      try {
+        const scope = await applyCompletionAction(action)
+        if (scope) void window.showInformationMessage(`GitHub Copilot completions ${action}d ${scopeLabel(scope)}.`)
+      } catch (error) {
+        void window.showErrorMessage(`Unable to update GitHub Copilot completions: ${errorMessage(error)}`)
+      }
+    }))
   }
 
   subscriptions.push(commands.registerCommand('github-copilot.changeCompletionModel', async () => {

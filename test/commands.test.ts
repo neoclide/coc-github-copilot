@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from 'node:test'
 import { commands, ConfigurationTarget, workspace } from 'coc.nvim'
 import type { LanguageClient } from 'coc.nvim'
 import { collectStatusReport } from '../src/attach.ts'
-import { changeCompletionModel, completionCommandIds, getDocumentCompletionEnabled, getLanguageCompletionOverride } from '../src/controls.ts'
+import { applyCompletionAction, changeCompletionModel, completionCommandIds, getDocumentCompletionEnabled, getLanguageCompletionOverride } from '../src/controls.ts'
 
 let bufferId = 0
 
@@ -39,9 +39,8 @@ describe('GitHub Copilot diagnostic commands', () => {
     assert.equal(commands.has('github-copilot.status'), true)
     assert.equal(commands.has('github-copilot.quota'), true)
     assert.equal(commands.has('github-copilot.changeCompletionModel'), true)
-    for (const scope of Object.values(completionCommandIds)) {
-      for (const command of Object.values(scope)) assert.equal(commands.has(command), true)
-    }
+    assert.equal(commands.has(completionCommandIds.enable), true)
+    assert.equal(commands.has(completionCommandIds.disable), true)
   })
 
   it('collects configuration and buffer-local state from the editor', async () => {
@@ -120,13 +119,16 @@ describe('GitHub Copilot diagnostic commands', () => {
   it('controls global, language and current-buffer completion scopes', async () => {
     const doc = await workspace.document
 
-    await commands.executeCommand(completionCommandIds.global.enable)
+    await applyCompletionAction('enable', async (items) => {
+      assert.equal(items.map(item => typeof item === 'string' ? item : item.text).join('|'), 'Global|Current language (typescript)|Current buffer')
+      return 0
+    })
     assert.equal(workspace.getConfiguration('github-copilot', null).get('enableCompletion'), true)
-    await commands.executeCommand(completionCommandIds.global.toggle)
+    await applyCompletionAction('disable', async (_items) => 0)
     assert.equal(workspace.getConfiguration('github-copilot', null).get('enableCompletion'), false)
 
-    await commands.executeCommand(completionCommandIds.global.enable)
-    await commands.executeCommand(completionCommandIds.language.disable)
+    await applyCompletionAction('enable', async (_items) => 0)
+    await applyCompletionAction('disable', async (_items) => 1)
     assert.equal(getLanguageCompletionOverride('typescript'), false)
     assert.equal(getDocumentCompletionEnabled(doc), false)
     assert.equal(workspace.getConfiguration('github-copilot', null).get('enableCompletion'), true)
@@ -138,14 +140,14 @@ describe('GitHub Copilot diagnostic commands', () => {
     assert.equal(report.buffer?.globalEnabled, true)
     assert.equal(report.buffer?.languageOverride, false)
     assert.equal(report.buffer?.configSource, 'current language (typescript)')
-    await commands.executeCommand(completionCommandIds.language.toggle)
+    await applyCompletionAction('enable', async (_items) => 1)
     assert.equal(getLanguageCompletionOverride('typescript'), true)
 
-    await commands.executeCommand(completionCommandIds.buffer.enable)
+    await applyCompletionAction('enable', async (_items) => 2)
     assert.equal(await doc.buffer.getVar('coc_copilot_disable'), 0)
-    await commands.executeCommand(completionCommandIds.buffer.disable)
+    await applyCompletionAction('disable', async (_items) => 2)
     assert.equal(await doc.buffer.getVar('coc_copilot_disable'), 1)
-    await commands.executeCommand(completionCommandIds.buffer.toggle)
+    await applyCompletionAction('enable', async (_items) => 2)
     assert.equal(await doc.buffer.getVar('coc_copilot_disable'), 0)
   })
 
