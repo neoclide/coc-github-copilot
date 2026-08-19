@@ -1,24 +1,12 @@
 import { ExtensionContext, LanguageClient, LanguageClientOptions, ServerOptions, services, TransportKind, window, workspace } from 'coc.nvim'
 import { version } from '../package.json'
 import { register } from './attach'
+import { getDocumentCompletionEnabled } from './controls'
 
 export async function activate(context: ExtensionContext): Promise<void> {
   const { subscriptions } = context
   const config = workspace.getConfiguration('github-copilot')
   const filetypes = config.get<string[]>('filetypes', ['*'])
-  let enableCompletion = config.get<boolean>('enableCompletion', true)
-  workspace.onDidChangeConfiguration(e => {
-    if (e.affectsConfiguration('github-copilot')) {
-      let config = workspace.getConfiguration('github-copilot')
-      enableCompletion = config.get<boolean>('enableCompletion', true)
-    }
-  }, null, subscriptions)
-  window.onDidChangeActiveTextEditor(e => {
-    if (e) {
-      let config = workspace.getConfiguration('github-copilot', e.document)
-      enableCompletion = config.get<boolean>('enableCompletion', true)
-    }
-  }, null, subscriptions)
 
   // Create the language client options
   const clientOptions: LanguageClientOptions = {
@@ -40,12 +28,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
     middleware: {
       sendRequest: async (type, param: any, token, next): Promise<any> => {
         if (typeof type === 'object' && type.method == 'textDocument/inlineCompletion') {
-          if (!enableCompletion) {
-            return Promise.resolve(undefined)
-          }
           let textDocument = param.textDocument
           let doc = workspace.getDocument(textDocument.uri)
-          if (!doc || await doc.getVar('copilot_disable')) {
+          if (!doc
+            || !getDocumentCompletionEnabled(doc)
+            || await doc.buffer.getVar('coc_copilot_disable')) {
             return undefined
           }
           param.textDocument = param.textDocument ?? { uri: doc.uri }

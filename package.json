@@ -29,6 +29,15 @@
           "scope": "language-overridable",
           "description": "Enable GitHub Copilot for inline completion"
         },
+        "github-copilot.enableCompletionByLanguage": {
+          "type": "object",
+          "default": {},
+          "scope": "application",
+          "description": "Per-language completion overrides managed by the current-language enable, disable and toggle commands.",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
         "github-copilot.openPanelCommand": {
           "type": "string",
           "default": "keepalt vs",
@@ -91,6 +100,7 @@
         "github.copilot.selectedCompletionModel": {
           "type": "string",
           "default": "",
+          "scope": "application",
           "markdownDescription": "The currently selected completion model ID. To select from a list of available models, use the __\"Change Completion Model\"__ command or open the model picker from the Copilot menu. The value must be a valid model ID. An empty value indicates that the default model will be used."
         }
       }
@@ -115,6 +125,46 @@
       {
         "title": "Show GitHub Copilot quota",
         "command": "github-copilot.quota"
+      },
+      {
+        "title": "Change GitHub Copilot completion model",
+        "command": "github-copilot.changeCompletionModel"
+      },
+      {
+        "title": "Enable GitHub Copilot completions globally",
+        "command": "github-copilot.enableGlobal"
+      },
+      {
+        "title": "Disable GitHub Copilot completions globally",
+        "command": "github-copilot.disableGlobal"
+      },
+      {
+        "title": "Toggle GitHub Copilot completions globally",
+        "command": "github-copilot.toggleGlobal"
+      },
+      {
+        "title": "Enable GitHub Copilot completions for current language",
+        "command": "github-copilot.enableLanguage"
+      },
+      {
+        "title": "Disable GitHub Copilot completions for current language",
+        "command": "github-copilot.disableLanguage"
+      },
+      {
+        "title": "Toggle GitHub Copilot completions for current language",
+        "command": "github-copilot.toggleLanguage"
+      },
+      {
+        "title": "Enable GitHub Copilot completions for current buffer",
+        "command": "github-copilot.enableBuffer"
+      },
+      {
+        "title": "Disable GitHub Copilot completions for current buffer",
+        "command": "github-copilot.disableBuffer"
+      },
+      {
+        "title": "Toggle GitHub Copilot completions for current buffer",
+        "command": "github-copilot.toggleBuffer"
       }
     ]
   },

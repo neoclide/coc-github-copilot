@@ -40,6 +40,8 @@ test('formatStatusReport combines service, login, local disable and content poli
     buffer: {
       configEnabled: true,
       configSource: 'workspace',
+      globalEnabled: true,
+      languageId: 'typescript',
       filetype: 'typescript',
       filetypeEnabled: true,
       copilotDisabled: true,
@@ -51,8 +53,8 @@ test('formatStatusReport combines service, login, local disable and content poli
   assert.match(report, /Service: Running/)
   assert.match(report, /Authentication: Credentials found for octocat \(not verified\)/)
   assert.match(report, /Current buffer: Disabled/)
-  assert.match(report, /github-copilot\.enableCompletion=true \(workspace\)/)
-  assert.match(report, /b:coc_copilot_disable is set/)
+  assert.match(report, /Effective configuration: github-copilot\.enableCompletion=true \(workspace\)/)
+  assert.match(report, /current buffer b:coc_copilot_disable is set/)
   assert.match(report, /file is excluded by content policy/)
   assert.match(report, /File status: Excluded by content policy: Content excluded by repository policy/)
 })
@@ -63,7 +65,10 @@ test('formatStatusReport preserves local diagnostics when the service is stopped
     running: false,
     buffer: {
       configEnabled: false,
-      configSource: 'user',
+      configSource: 'current language (markdown)',
+      globalEnabled: true,
+      languageId: 'markdown',
+      languageOverride: false,
       filetype: 'markdown',
       filetypeEnabled: false,
       copilotDisabled: false,
@@ -73,10 +78,32 @@ test('formatStatusReport preserves local diagnostics when the service is stopped
 
   assert.match(report, /Authentication: Unavailable \(service is not running\)/)
   assert.match(report, /Current buffer: Disabled/)
-  assert.match(report, /github-copilot\.enableCompletion is false/)
+  assert.match(report, /current language \(markdown\) override is false/)
+  assert.match(report, /Global configuration: github-copilot\.enableCompletion=true/)
+  assert.match(report, /Language override \(markdown\): github-copilot\.enableCompletion=false/)
   assert.match(report, /filetype markdown is not enabled/)
   assert.match(report, /b:coc_inline_disable is set/)
   assert.match(report, /File status: Unavailable \(service is not running\)/)
+})
+
+test('formatStatusReport distinguishes global and current-buffer disables', () => {
+  const report = formatStatusReport({
+    service: 'Stopped',
+    running: false,
+    buffer: {
+      configEnabled: false,
+      configSource: 'user',
+      globalEnabled: false,
+      languageId: 'typescript',
+      filetype: 'typescript',
+      filetypeEnabled: true,
+      copilotDisabled: true,
+      inlineDisabled: false
+    }
+  })
+
+  assert.match(report, /global github-copilot\.enableCompletion is false/)
+  assert.match(report, /current buffer b:coc_copilot_disable is set/)
 })
 
 test('formatQuotaReport shows percentage, plan, overage and reset date', () => {

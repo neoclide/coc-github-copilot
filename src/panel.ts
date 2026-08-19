@@ -1,4 +1,5 @@
 import { Buffer, CancellationTokenSource, commands, Disposable, disposeAll, FormattingOptions, InlineCompletionItem, LanguageClient, Mutex, nvim, Position, ProgressType, Range, snippetManager, StringValue, TextEdit, window, workspace } from 'coc.nvim';
+import { canAcceptPanelEdit, getEditEndPosition } from './panelUtils';
 
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
@@ -40,6 +41,9 @@ export interface PanelConfig {
   readonly targetUri: string
   readonly targetWinid: number
   readonly position: Position
+  readonly targetVersion: number
+  readonly targetLine: string
+  readonly wasInsert: boolean
 }
 
 export interface PanelItem {
@@ -48,7 +52,7 @@ export interface PanelItem {
   readonly item: InlineCompletionItem
 }
 
-export default class Panel {
+export class Panel {
   private buffer: Buffer
   private lines: string[] = ['']
   private disposables: Disposable[] = []
@@ -85,24 +89,7 @@ export default class Panel {
       let lnum = await workspace.nvim.call('line', '.') as number
       let curr = this.getCurrentItem(lnum - 1)
       if (curr) {
-        let doc = workspace.getDocument(this.config.targetUri)
-        if (doc && doc.attached) {
-          let { item } = curr
-          let range = curr.item.range ? curr.item.range : Range.create(this.config.position, this.config.position)
-          let insertText = await getInsertText(curr.item, this.config.formatOptions)
-          const edit = TextEdit.replace(range, insertText)
-          await doc.applyEdits([edit])
-          workspace.nvim.call('win_gotoid', [this.config.targetWinid], true)
-          if (item.command) {
-            try {
-              await commands.executeCommand(item.command.command, ...item.command.arguments ?? [])
-            } catch (err) {
-              this.client.error(`Error on executing command "${item.command.command}"`, err, true)
-            }
-          }
-        } else {
-          void window.showWarningMessage(`Target buffer ${this.config.targetUri} is not attached`)
-        }
+        await this.acceptItem(curr.item)
       }
     }))
     this.disposables.push(workspace.registerLocalKeymap(this._bufnr, 'n', keys.next, async () => {
@@ -111,6 +98,50 @@ export default class Panel {
     this.disposables.push(workspace.registerLocalKeymap(this._bufnr, 'n', keys.prev, async () => {
       await this.navigate(false)
     }))
+  }
+
+  public async acceptItem(item: InlineCompletionItem): Promise<boolean> {
+    const doc = workspace.getDocument(this.config.targetUri)
+    if (!doc?.attached) {
+      void window.showWarningMessage(`Target buffer ${this.config.targetUri} is not attached`)
+      return false
+    }
+
+    const range = item.range ?? Range.create(this.config.position, this.config.position)
+    const currentLine = range.start.line === this.config.position.line ? doc.getline(range.start.line) : undefined
+    if (!canAcceptPanelEdit(doc.version, this.config.targetVersion, doc.dirty, currentLine, this.config.targetLine)) {
+      void window.showErrorMessage('Target buffer has changed since requesting the completion.')
+      return false
+    }
+
+    const insertText = await getInsertText(item, this.config.formatOptions)
+    const endPosition = getEditEndPosition(range.start, insertText)
+    await doc.applyEdits([TextEdit.replace(range, insertText)])
+    if (item.command) {
+      try {
+        await commands.executeCommand(item.command.command, ...item.command.arguments ?? [])
+      } catch (err) {
+        this.client.error(`Error on executing command "${item.command.command}"`, err, true)
+      }
+    }
+
+    this.dispose()
+    await workspace.nvim.command(`silent! bwipeout! ${this._bufnr}`)
+    let moved = await workspace.nvim.call('win_gotoid', [this.config.targetWinid]) as number
+    if (!moved) {
+      const winid = await workspace.nvim.call('bufwinid', [doc.bufnr]) as number
+      if (winid > 0) moved = await workspace.nvim.call('win_gotoid', [winid]) as number
+    }
+    if (moved) {
+      await window.moveTo(endPosition)
+      if (this.config.wasInsert) {
+        const atLineEnd = endPosition.character >= doc.getline(endPosition.line).length
+        await workspace.nvim.call('feedkeys', [atLineEnd ? 'a' : 'i', 'in'])
+      }
+    } else {
+      void window.showWarningMessage(`Target buffer ${this.config.targetUri} is not visible`)
+    }
+    return true
   }
 
   private async navigate(next: boolean): Promise<void> {
@@ -212,19 +243,23 @@ export default class Panel {
   }
 
   public dispose(): void {
+    if (this._disposed) return
     this._disposed = true
     this.items = []
     if (this.interval) {
       clearInterval(this.interval)
     }
+    this.listener?.dispose()
+    this.listener = undefined
     if (this.tokenSource) {
-      this.listener?.dispose()
-      this.listener = undefined
       this.tokenSource.cancel()
       this.tokenSource.dispose()
       this.tokenSource = undefined
-      disposeAll(this.disposables)
-      this.lines = []
     }
+    disposeAll(this.disposables)
+    this.disposables = []
+    this.lines = []
   }
 }
+
+export default Panel

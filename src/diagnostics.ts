@@ -30,6 +30,9 @@ export interface CheckQuotaResult {
 export interface BufferStatus {
   configEnabled: boolean
   configSource: string
+  globalEnabled: boolean
+  languageId: string
+  languageOverride?: boolean
   filetype: string
   filetypeEnabled: boolean
   copilotDisabled: boolean
@@ -125,13 +128,19 @@ export function formatStatusReport(report: StatusReport): string {
   } else {
     const disabledBy: string[] = []
     if (!report.buffer.configEnabled) {
-      disabledBy.push('github-copilot.enableCompletion is false')
+      if (report.buffer.languageOverride === false) {
+        disabledBy.push(`current language (${report.buffer.languageId || '(none)'}) override is false`)
+      } else if (!report.buffer.globalEnabled) {
+        disabledBy.push('global github-copilot.enableCompletion is false')
+      } else {
+        disabledBy.push(`github-copilot.enableCompletion is false (${report.buffer.configSource})`)
+      }
     }
     if (!report.buffer.filetypeEnabled) {
       disabledBy.push(`filetype ${report.buffer.filetype || '(none)'} is not enabled`)
     }
     if (report.buffer.copilotDisabled) {
-      disabledBy.push('b:coc_copilot_disable is set')
+      disabledBy.push('current buffer b:coc_copilot_disable is set')
     }
     if (report.buffer.inlineDisabled) {
       disabledBy.push('b:coc_inline_disable is set')
@@ -141,7 +150,11 @@ export function formatStatusReport(report: StatusReport): string {
     }
 
     lines.push(`Current buffer: ${disabledBy.length === 0 ? 'Enabled' : 'Disabled'}`)
-    lines.push(`Configuration: github-copilot.enableCompletion=${String(report.buffer.configEnabled)} (${report.buffer.configSource})`)
+    lines.push(`Effective configuration: github-copilot.enableCompletion=${String(report.buffer.configEnabled)} (${report.buffer.configSource})`)
+    lines.push(`Global configuration: github-copilot.enableCompletion=${String(report.buffer.globalEnabled)}`)
+    if (report.buffer.languageOverride !== undefined) {
+      lines.push(`Language override (${report.buffer.languageId || '(none)'}): github-copilot.enableCompletion=${String(report.buffer.languageOverride)}`)
+    }
     if (disabledBy.length > 0) lines.push(`Disabled by: ${disabledBy.join(', ')}`)
   }
 

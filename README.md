@@ -14,8 +14,7 @@ see `:h coc-status`.
 
 Use `:CocList services` to run or stop the language server.
 
-Use `let b:coc_copilot_disable = 1` on buffer create to disable copilot
-completion for specific buffer.
+Use `let b:coc_copilot_disable = 1` to disable Copilot completion for the current buffer.
 
 ## Install
 
@@ -32,10 +31,15 @@ In your vim/neovim, run command:
 - `github-copilot.openPanel` Open copilot completions panel.
 - `github-copilot.status` Show the service, authentication, current buffer configuration and content policy status.
 - `github-copilot.quota` Show the completion quota, plan and reset date.
+- `github-copilot.changeCompletionModel` Select a completion-scoped model reported by the Copilot language server.
+- `github-copilot.enableGlobal`, `github-copilot.disableGlobal`, `github-copilot.toggleGlobal` Control completions globally.
+- `github-copilot.enableLanguage`, `github-copilot.disableLanguage`, `github-copilot.toggleLanguage` Control completions for the current language.
+- `github-copilot.enableBuffer`, `github-copilot.disableBuffer`, `github-copilot.toggleBuffer` Control completions for the current buffer.
 
 ## Configurations
 
 - `github-copilot.enableCompletion`: Enable GitHub Copilot for inline completion  Default: `true`
+- `github-copilot.enableCompletionByLanguage`: Per-language completion overrides managed by the current-language commands. Default: `{}`
 - `github-copilot.openPanelCommand`: Vim command to open github copilot panel for inline completion items. Default: `"keepalt vs"`
 - `github-copilot.filetypes`: Enabled filetypes, use "*" or null for all filetypes.  Default: `["*"]`
 - `github-copilot.trace.server.verbosity`: Trace level of communication between server and client  Default: `"messages"`
@@ -43,6 +47,7 @@ In your vim/neovim, run command:
 - `github-copilot.trace.server.format`: Text format of trace messages.  Default: `"text"`
     Valid options: ["text","json"]
 - `github-copilot.statusIcon`: Status text, change to  if nerd font works on your vim.  Default: `"Copilot"`
+- `github.copilot.selectedCompletionModel`: Completion model selected by `github-copilot.changeCompletionModel`. An empty value uses the server default. Default: `""`
 - `github-enterprise.uri`: If you are using GitHub Copilot Enterprise, set this to the URI of your GitHub Enterprise instance.  Default: `null`
 
 ## License

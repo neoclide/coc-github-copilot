@@ -1,6 +1,7 @@
 import { CancellationTokenSource, commands, Disposable, events, InlineCompletionItem, LanguageClient, State, Uri, window, workspace, WorkspaceConfiguration } from 'coc.nvim';
+import { getDocumentCompletionEnabled, getDocumentLanguageCompletionOverride, registerControls } from './controls';
 import { BufferStatus, CheckFileStatusResult, CheckQuotaResult, CheckStatusResult, configurationSource, formatQuotaReport, formatServiceState, formatStatusReport, isFiletypeEnabled, StatusReport } from './diagnostics';
-import Panel, { PanelConfig } from './panel';
+import { Panel, PanelConfig } from './panel';
 
 interface SigInResult {
   userCode: string
@@ -25,15 +26,22 @@ export async function collectStatusReport(client: LanguageClient, config: Worksp
   let buffer: BufferStatus | undefined
   if (doc?.attached) {
     const scopedConfig = workspace.getConfiguration('github-copilot', doc)
-    const configEnabled = scopedConfig.get<boolean>('enableCompletion', true)
+    const configEnabled = getDocumentCompletionEnabled(doc)
+    const globalEnabled = workspace.getConfiguration('github-copilot', null).get<boolean>('enableCompletion', true)
+    const languageOverride = getDocumentLanguageCompletionOverride(doc)
     const filetypes = config.get<Array<string | null>>('filetypes', ['*'])
     const [copilotDisabled, inlineDisabled] = await Promise.all([
-      doc.getVar('copilot_disable'),
-      doc.getVar('inline_disable')
+      doc.buffer.getVar('coc_copilot_disable'),
+      doc.buffer.getVar('coc_inline_disable')
     ])
     buffer = {
       configEnabled,
-      configSource: configurationSource(scopedConfig.inspect<boolean>('enableCompletion')),
+      configSource: languageOverride === undefined
+        ? configurationSource(scopedConfig.inspect<boolean>('enableCompletion'))
+        : `current language (${doc.languageId})`,
+      globalEnabled,
+      languageId: doc.languageId,
+      languageOverride,
       filetype: doc.filetype,
       filetypeEnabled: isFiletypeEnabled(filetypes, doc.filetype),
       copilotDisabled: Boolean(copilotDisabled),
@@ -120,7 +128,12 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
     const targetWinid = await nvim.call('win_getid') as number
     if (!commentNs) commentNs = await nvim.createNamespace(commentNamespace)
     if (!seperatorNs) seperatorNs = await nvim.createNamespace(seperatorNamespace)
+    const mode = await nvim.call('mode') as string
+    const wasInsert = /^[iR]/.test(mode)
     const position = await window.getCursorPosition()
+    const targetVersion = doc.version
+    const targetLine = doc.getline(position.line)
+    if (wasInsert) await nvim.command('stopinsert')
     const formattingOptions = await workspace.getFormatOptions(doc.uri)
     const partialResultToken = uuid()
     const params = {
@@ -150,7 +163,10 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       seperatorNs,
       targetUri: doc.uri,
       targetWinid,
-      position
+      position,
+      targetVersion,
+      targetLine,
+      wasInsert
     }
     const panel = new Panel(res[0][1] as number, res[0][2] as number, partialResultToken, client, tokenSource, conf)
     panels.set(panelUri.toString(), panel);
@@ -221,6 +237,8 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
       void window.showErrorMessage('GitHub Copilot client is not running.')
     }
   }))
+
+  registerControls(subscriptions, client)
 
   subscriptions.push(commands.registerCommand('github-copilot.status', async () => {
     void window.showInformationMessage(formatStatusReport(await collectStatusReport(client, config)))
