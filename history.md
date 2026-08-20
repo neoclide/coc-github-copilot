@@ -1,3 +1,9 @@
+# 0.1.1
+
+- add release.yml (e8b4335)
+- update logo (0b32e8c)
+- add logo (99b31ad)
+
 # 0.1.0
 
 - Add `github-copilot.status` and `github-copilot.quota` diagnostics commands.
