@@ -2,6 +2,7 @@ import { ExtensionContext, LanguageClient, LanguageClientOptions, ServerOptions,
 import { version } from '../package.json'
 import { register } from './attach'
 import { getDocumentCompletionEnabled } from './controls'
+import { registerNextEditProvider } from './nextEdit'
 
 export async function activate(context: ExtensionContext): Promise<void> {
   const { subscriptions } = context
@@ -62,6 +63,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     clientOptions
   )
   register(context.subscriptions, client, config)
+  registerNextEditProvider(context.subscriptions, filetypes, client)
 
   // Register the language client
   subscriptions.push(

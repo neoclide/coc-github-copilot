@@ -14,7 +14,7 @@
     "vim"
   ],
   "engines": {
-    "coc": "^0.0.82"
+    "coc": "^0.1.0"
   },
   "activationEvents": [
     "*"
@@ -168,6 +168,7 @@
     "entryFile": "src/index.ts",
     "user-settings": {
       "github-copilot.enableCompletion": false,
+      "nextEdit.autoTrigger": false,
       "github-copilot.filetypes": [
         "javascript"
       ]

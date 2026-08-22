@@ -12,3 +12,4 @@
 - Make Panel acceptance safe against target-buffer changes and restore the original editor state after accepting.
 - Show Panel generation progress, candidate counts, completion and errors; preserve snippet placeholders when accepting suggestions.
 - Add `github-copilot.diagnostics` with extension, Language Server, Node, editor and workspace details, plus log and service restart actions.
+- Add Copilot next edit suggestions through coc.nvim's generic Next Edit interface.

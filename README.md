@@ -10,6 +10,9 @@ Github copilot support with coc.nvim.
 
 This extension using inline completion feature of coc.nvim, see `:h coc-inlineCompletion`.
 
+Copilot next edit suggestions use coc.nvim's generic Next Edit interface. See
+`:h coc-next-edit` for automatic triggering, mappings and buffer-local controls.
+
 If your network can't access copilot service directly, configure proxy is
 needed, see `:h coc-config-http`.
 
@@ -18,7 +21,7 @@ see `:h coc-status`.
 
 Use `:CocList services` to run or stop the language server.
 
-Use `let b:coc_copilot_disable = 1` to disable Copilot completion for the current buffer.
+Use `let b:coc_copilot_disable = 1` to disable Copilot inline completion and next edit suggestions for the current buffer.
 
 ## Install
 
