@@ -1,3 +1,9 @@
+# 0.1.2
+
+- fix: update Copilot next edit model support (2c7ec6f)
+- feat: add Copilot next edit support (95f774c)
+- update coc.nvim (fd98831)
+
 # 0.1.1
 
 - add release.yml (e8b4335)
