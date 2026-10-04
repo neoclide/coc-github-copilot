@@ -14,7 +14,7 @@
     "vim"
   ],
   "engines": {
-    "coc": "^0.1.0"
+    "coc": "^0.0.82"
   },
   "activationEvents": [
     "*"
