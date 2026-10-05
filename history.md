@@ -1,3 +1,8 @@
+# 0.1.3
+
+- Merge branch 'main' of github.com:neoclide/coc-github-copilot (423151c)
+- build: lower coc engine requirement to ^0.0.82 (73f9de3)
+
 # 0.1.2
 
 - fix: update Copilot next edit model support (2c7ec6f)
