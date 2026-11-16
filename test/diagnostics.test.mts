@@ -7,6 +7,44 @@ import {
   formatStatusReport,
   isFiletypeEnabled
 } from '../src/diagnostics.ts'
+import { getSignInCommand, isAlreadySignedIn } from '../src/signIn.ts'
+
+test('getSignInCommand supports legacy and recent sign-in responses', () => {
+  assert.deepEqual(getSignInCommand({
+    userCode: 'ABCD-EFGH',
+    command: {
+      command: 'github.copilot.finishSignIn',
+      arguments: ['https://github.com/login/device']
+    }
+  }), {
+    command: 'github.copilot.finishSignIn',
+    arguments: ['https://github.com/login/device']
+  })
+  assert.equal(getSignInCommand({ userCode: 'ABCD-EFGH' }), undefined)
+  assert.equal(getSignInCommand({
+    userCode: 'ABCD-EFGH',
+    command: { command: 1, arguments: [] }
+  }), undefined)
+  assert.equal(getSignInCommand({
+    userCode: 'ABCD-EFGH',
+    command: { command: '', arguments: [] }
+  }), undefined)
+  assert.deepEqual(getSignInCommand({
+    userCode: 'ABCD-EFGH',
+    command: { command: 'github.copilot.finishSignIn' }
+  }), {
+    command: 'github.copilot.finishSignIn',
+    arguments: []
+  })
+})
+
+test('isAlreadySignedIn recognizes current authentication responses', () => {
+  assert.equal(isAlreadySignedIn({ status: 'AlreadySignedIn', user: 'octocat' }), true)
+  assert.equal(isAlreadySignedIn({ status: 'OK', user: 'octocat' }), true)
+  assert.equal(isAlreadySignedIn({ status: 'MaybeOK' }), true)
+  assert.equal(isAlreadySignedIn({ status: 'NotSignedIn' }), false)
+  assert.equal(isAlreadySignedIn({ userCode: 'ABCD-EFGH' }), false)
+})
 
 test('configurationSource uses the most specific defined value', () => {
   assert.equal(configurationSource({ defaultValue: true }), 'default')
