@@ -3,15 +3,7 @@ import { version as extensionVersion } from '../package.json'
 import { getDocumentCompletionEnabled, getDocumentLanguageCompletionOverride, registerControls } from './controls';
 import { BufferStatus, CheckFileStatusResult, CheckQuotaResult, CheckStatusResult, configurationSource, DiagnosticReport, formatDiagnosticReport, formatQuotaReport, formatServiceState, formatStatusReport, isFiletypeEnabled, StatusReport } from './diagnostics';
 import { Panel, PanelConfig } from './panel';
-
-interface SigInResult {
-  userCode: string
-  command: {
-    command: string
-    arguments: any[]
-    title: string
-  }
-}
+import { getSignInCommand, isAlreadySignedIn, SigInResult } from './signIn';
 const commentNamespace = 'copilotComment'
 const seperatorNamespace = 'copilotSpeerator'
 
@@ -223,21 +215,33 @@ export function register(subscriptions: Disposable[], client: LanguageClient, co
   }))
 
   subscriptions.push(commands.registerCommand('github-copilot.signIn', async () => {
-    client.sendRequest<SigInResult>('signIn', {}).then(async result => {
+    try {
+      const result = await client.sendRequest<SigInResult>('signIn', {})
+      if (isAlreadySignedIn(result)) {
+        const user = typeof result.user === 'string' ? ` as ${result.user}` : ''
+        void window.showInformationMessage(`GitHub Copilot is already signed in${user}.`)
+        return
+      }
+      if (typeof result?.userCode !== 'string' || result.userCode.length === 0) {
+        void window.showErrorMessage('GitHub Copilot client returned an invalid sign-in response.')
+        return
+      }
       try {
         await nvim.call('setreg', ['+', result.userCode])
       } catch (e) {
         // ignore Error
       }
-      void window.showInformationMessage(`Please copy your user code: ${result.userCode}`, 'Continue').then(selected => {
-        if (selected != null) {
-          commands.executeCommand(result.command.command, ...result.command.arguments)
-        }
-      })
-    }, e => {
+      const command = getSignInCommand(result)
+      const selected = command
+        ? await window.showInformationMessage(`Please copy your user code: ${result.userCode}`, 'Continue')
+        : await window.showInformationMessage(`Please copy your user code: ${result.userCode}`)
+      if (selected != null && command) {
+        await commands.executeCommand(command.command, ...command.arguments)
+      }
+    } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       void window.showErrorMessage(`Error on signIn: ${message}`)
-    })
+    }
   }))
 
   subscriptions.push(commands.registerCommand('github-copilot.signOut', async () => {
